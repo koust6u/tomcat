@@ -16,6 +16,7 @@
  */
 package org.apache.juli;
 
+import java.util.logging.LogManager;
 import java.util.logging.LogRecord;
 
 /**
@@ -25,19 +26,28 @@ import java.util.logging.LogRecord;
  * <p>
  * The LogRecord is mapped as attributes:
  * <ul>
- * <li>time: the log record timestamp</li>
+ * <li>time: the log record timestamp, with the default format as {@code yyyy-MM-dd'T'HH:mm:ss.SSSX}</li>
  * <li>level: the log level</li>
  * <li>thread: the current on which the log occurred</li>
  * <li>class: the class from which the log originated</li>
  * <li>method: the method from which the log originated</li>
  * <li>message: the log message</li>
- * <li>error: the message from an exception, if present</li>
- * <li>trace: the full stack trace from an exception, if present, represented as an array of string
- *  (the message first, then one string per stack trace element prefixed by a string,
+ * <li>throwable: the full stack trace from an exception, if present, represented as an array of string
+ *  (the message first, then one string per stack trace element prefixed by a whitespace,
  *  then moving on to the cause exception if any)</li>
  * </ul>
  */
 public class JsonFormatter extends OneLineFormatter {
+
+    private static final String DEFAULT_TIME_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSSX";
+
+    public JsonFormatter() {
+        String timeFormat = LogManager.getLogManager().getProperty(JsonFormatter.class.getName() + ".timeFormat");
+        if (timeFormat == null) {
+            timeFormat = DEFAULT_TIME_FORMAT;
+        }
+        setTimeFormat(timeFormat);
+    }
 
     @Override
     public String format(LogRecord record) {
@@ -82,13 +92,8 @@ public class JsonFormatter extends OneLineFormatter {
         if (t != null) {
             sb.append("\", ");
 
-            // Error
-            sb.append("\"error\": \"");
-            sb.append(JSONFilter.escape(t.toString()));
-            sb.append("\", ");
-
             // Stack trace
-            sb.append("\"trace\": [");
+            sb.append("\"throwable\": [");
             boolean first = true;
             do {
                 if (!first) {
@@ -102,9 +107,9 @@ public class JsonFormatter extends OneLineFormatter {
                 }
                 t = t.getCause();
             } while (t != null);
-            sb.append("]");
+            sb.append(']');
         } else {
-            sb.append("\"");
+            sb.append('\"');
         }
 
         sb.append('}');
